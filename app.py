@@ -1,57 +1,63 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 
-st.set_page_config(page_title="Fleet Expenses Dashboard", layout="wide")
+st.title("Fleet Maintenance Analysis Dashboard")
 
-st.title("🚛 Fleet Maintenance & Expenses Dashboard")
+uploaded_file = st.file_uploader("Upload Maintenance File", type=["xlsx", "csv"])
 
-# Upload file
-file = st.file_uploader("Upload Excel or CSV file", type=["xlsx", "csv"])
+if uploaded_file:
 
-if file:
-    # Read file
-    if file.name.endswith(".csv"):
-        df = pd.read_csv(file)
+    # قراءة الملف
+    if uploaded_file.name.endswith(".csv"):
+        df = pd.read_csv(uploaded_file)
     else:
-        df = pd.read_excel(file)
+        df = pd.read_excel(uploaded_file)
 
-    st.success("File loaded successfully!")
+    st.subheader("Data Preview")
+    st.dataframe(df.head())
 
-    # Show raw data
-    st.subheader("📊 Raw Data")
-    st.dataframe(df)
+    # تنظيف الأعمدة المهمة
+    df["Net Amount"] = pd.to_numeric(df["Net Amount"], errors="coerce")
 
-    # Clean column names (optional safety)
-    df.columns = [col.strip() for col in df.columns]
+    # =========================
+    # 1. إجمالي الصرف حسب المنطقة
+    # =========================
+    st.subheader("Total Expense by Area")
 
-    # KPIs
-    total_amount = df["Amount"].sum()
-    total_net = df["Net Amount"].sum()
-    vat = df["VAT 14%"].sum()
+    area_cost = df.groupby("Area区域")["Net Amount"].sum().sort_values(ascending=False)
+    st.dataframe(area_cost)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Amount", f"{total_amount:,.0f}")
-    col2.metric("Total Net", f"{total_net:,.0f}")
-    col3.metric("Total VAT", f"{vat:,.0f}")
+    st.bar_chart(area_cost)
 
-    # Top vehicles spending
-    st.subheader("🚗 Top Vehicles by Expense")
-    top_vehicles = df.groupby("Vplate Number")["Amount"].sum().sort_values(ascending=False).head(10)
-    fig1 = px.bar(top_vehicles, x=top_vehicles.index, y=top_vehicles.values)
-    st.plotly_chart(fig1, use_container_width=True)
+    # =========================
+    # 2. إجمالي لكل مركبة
+    # =========================
+    st.subheader("Total Expense per Vehicle")
 
-    # Expenses by Area
-    st.subheader("📍 Expenses by Area")
-    area = df.groupby("Area")["Amount"].sum().sort_values(ascending=False)
-    fig2 = px.pie(values=area.values, names=area.index)
-    st.plotly_chart(fig2, use_container_width=True)
+    vehicle_cost = df.groupby("Vplate Number车牌号")["Net Amount"].sum().sort_values(ascending=False)
+    st.dataframe(vehicle_cost)
 
-    # Expense categories
-    st.subheader("🧾 Expense Categories")
-    cat = df.groupby("Expense Category费用类型")["Amount"].sum().sort_values(ascending=False)
-    fig3 = px.bar(cat, x=cat.index, y=cat.values)
-    st.plotly_chart(fig3, use_container_width=True)
+    # =========================
+    # 3. أعلى 10 سيارات
+    # =========================
+    st.subheader("Top 10 Vehicles by Expense")
 
-else:
-    st.info("Please upload a file to start analysis")
+    top10 = vehicle_cost.head(10)
+    st.dataframe(top10)
+    st.bar_chart(top10)
+
+    # =========================
+    # 4. حسب نوع الصيانة
+    # =========================
+    st.subheader("Maintenance Type Analysis")
+
+    type_cost = df.groupby("types of maintenance ")["Net Amount"].sum().sort_values(ascending=False)
+    st.dataframe(type_cost)
+    st.bar_chart(type_cost)
+
+    # =========================
+    # 5. إجمالي الصرف
+    # =========================
+    total = df["Net Amount"].sum()
+
+    st.metric("Total Net Expense", f"{total:,.2f}")
