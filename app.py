@@ -13,10 +13,17 @@ if uploaded_file:
     else:
         df = pd.read_excel(uploaded_file)
 
+    # =========================
+    # تنظيف الأعمدة (مهم جدًا)
+    # =========================
+    df.columns = df.columns.str.strip()
+
     st.subheader("Data Preview")
     st.dataframe(df.head())
 
-    # تنظيف الأعمدة المهمة
+    # =========================
+    # تحويل Net Amount
+    # =========================
     df["Net Amount"] = pd.to_numeric(df["Net Amount"], errors="coerce")
 
     # =========================
@@ -26,7 +33,6 @@ if uploaded_file:
 
     area_cost = df.groupby("Area区域")["Net Amount"].sum().sort_values(ascending=False)
     st.dataframe(area_cost)
-
     st.bar_chart(area_cost)
 
     # =========================
@@ -51,7 +57,9 @@ if uploaded_file:
     # =========================
     st.subheader("Maintenance Type Analysis")
 
-    type_cost = df.groupby("types of maintenance ")["Net Amount"].sum().sort_values(ascending=False)
+    # ملاحظة: تم إزالة المسافة الزائدة من اسم العمود
+    type_cost = df.groupby("types of maintenance")["Net Amount"].sum().sort_values(ascending=False)
+
     st.dataframe(type_cost)
     st.bar_chart(type_cost)
 
